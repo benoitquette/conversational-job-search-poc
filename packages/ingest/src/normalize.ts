@@ -28,6 +28,26 @@ function strOrNull(v: unknown): string | null {
   return s.length ? s : null;
 }
 
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: " ",
+  pound: "£",
+  euro: "€",
+};
+
+/** Decode XML/HTML entities (named + numeric, e.g. &#xA3; → £). Critical before salary parsing. */
+export function decodeEntities(input: unknown): string {
+  if (input === null || input === undefined || typeof input === "object") return "";
+  return String(input)
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(parseInt(n, 10)))
+    .replace(/&([a-z]+);/gi, (m, name) => NAMED_ENTITIES[name.toLowerCase()] ?? m);
+}
+
 /** Strip HTML to readable plain text. The feed embeds messy HTML in CDATA blocks. */
 export function stripHtml(input: unknown): string {
   if (input === null || input === undefined) return "";
@@ -35,11 +55,8 @@ export function stripHtml(input: unknown): string {
   s = s
     .replace(/<\s*(br|\/li|\/p|\/h[1-6]|\/div)\s*\/?\s*>/gi, "\n")
     .replace(/<li[^>]*>/gi, "• ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&pound;|&#xA3;|&#163;/gi, "£")
-    .replace(/&[a-z]+;/gi, " ")
+    .replace(/<[^>]+>/g, " ");
+  s = decodeEntities(s)
     .replace(/[ \t]+/g, " ")
     .replace(/\n{3,}/g, "\n\n")
     .replace(/^\s+|\s+$/gm, "")
@@ -61,14 +78,14 @@ function parseSalary(raw: unknown): SalaryInfo {
 
   // Plain string form: "Attractive Salary", "Competitive", etc.
   if (typeof raw !== "object") {
-    const display = str(raw);
+    const display = decodeEntities(str(raw));
     return { ...empty, display };
   }
 
   // Nested form: { salary: "£32,400-£48,000", currency: "£", period: 4 }
   const obj = raw as Record<string, unknown>;
-  const text = str(obj.salary);
-  const currency = strOrNull(obj.currency) ?? "£";
+  const text = decodeEntities(str(obj.salary));
+  const currency = decodeEntities(strOrNull(obj.currency) ?? "£") || "£";
   const period = SALARY_PERIODS[str(obj.period)] ?? null;
   const nums = (text.match(/\d[\d,]*/g) ?? []).map((n) => parseInt(n.replace(/,/g, ""), 10));
   const min = nums.length ? nums[0] : null;
