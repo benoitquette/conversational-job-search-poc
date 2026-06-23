@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
-import type { Filters, SearchResponse, SemanticMode } from "./types";
+import type { Filters, SearchHit, SearchResponse, SemanticMode } from "./types";
 import { searchJobs } from "./api";
-import { JobCard } from "./JobCard";
+import { JobDetail } from "./JobDetail";
 
 export function SearchView({ mode }: { mode: SemanticMode }) {
   const [q, setQ] = useState("");
   const [filters, setFilters] = useState<Filters>({});
   const [data, setData] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState<SearchHit | null>(null);
 
   async function run(nextFilters = filters) {
     setLoading(true);
+    setSelected(null);
     try {
       setData(await searchJobs({ q, filters: nextFilters, mode, size: 12 }));
     } finally {
@@ -49,7 +51,7 @@ export function SearchView({ mode }: { mode: SemanticMode }) {
         <button type="submit">Search</button>
       </form>
 
-      <div className="layout">
+      <div className={`layout ${selected ? "with-detail" : ""}`}>
         <aside className="filters">
           {data && (
             <>
@@ -80,10 +82,26 @@ export function SearchView({ mode }: { mode: SemanticMode }) {
             {loading ? "Searching…" : data ? `${data.total} jobs · ${data.mode} · ${data.tookMs}ms` : ""}
           </div>
           {data?.hits.map((j) => (
-            <JobCard key={j.jobId} job={j} />
+            <button
+              key={j.jobId}
+              className={`result-row ${selected?.jobId === j.jobId ? "active" : ""}`}
+              onClick={() => setSelected(j)}
+            >
+              <div className="result-row-head">
+                <span className="result-title">{j.title}</span>
+                {j.contractType && <span className="badge">{j.contractType}</span>}
+              </div>
+              <div className="result-meta">
+                {j.location && <span>📍 {j.location}</span>}
+                {j.sector && <span>🏷️ {j.sector}</span>}
+                {j.salary?.display && <span>💷 {j.salary.display}</span>}
+              </div>
+            </button>
           ))}
           {data && data.hits.length === 0 && !loading && <p>No matching jobs.</p>}
         </section>
+
+        {selected && <JobDetail job={selected} onClose={() => setSelected(null)} />}
       </div>
     </div>
   );

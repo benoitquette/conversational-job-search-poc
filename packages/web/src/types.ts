@@ -15,6 +15,8 @@ export interface SearchHit {
   title: string;
   url: string;
   sector: string | null;
+  subSector: string | null;
+  industry: string | null;
   location: string | null;
   contractType: string | null;
   salary: SalaryInfo;
