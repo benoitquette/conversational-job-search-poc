@@ -69,6 +69,7 @@ async function main() {
     salary: { type: "object", enabled: false },
     salaryMin: { type: "integer" },
     salaryMax: { type: "integer" },
+    geo: { type: "geo_point" }, // populated by `npm run geocode`
 
     summary: { type: "text" },
     descriptionText: { type: "text" },
