@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import type { Filters, SearchHit, SearchResponse, SemanticMode } from "./types";
 import { searchJobs } from "./api";
 import { JobDetail } from "./JobDetail";
+import { Highlighted } from "./Highlighted";
+import { recordQuery, recordView } from "./history";
 
 export function SearchView({ mode }: { mode: SemanticMode }) {
   const [q, setQ] = useState("");
@@ -9,10 +11,13 @@ export function SearchView({ mode }: { mode: SemanticMode }) {
   const [data, setData] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<SearchHit | null>(null);
+  const [searched, setSearched] = useState(false);
 
   async function run(nextFilters = filters) {
     setLoading(true);
     setSelected(null);
+    setSearched(true);
+    if (q.trim()) recordQuery(q);
     try {
       setData(await searchJobs({ q, filters: nextFilters, mode, size: 12 }));
     } finally {
@@ -20,9 +25,15 @@ export function SearchView({ mode }: { mode: SemanticMode }) {
     }
   }
 
-  // Re-run when the retrieval mode changes (and on first mount).
+  function selectJob(j: SearchHit) {
+    setSelected(j);
+    recordView(j.jobId);
+  }
+
+  // Re-run only after the user has searched (so the initial view shows no results),
+  // e.g. when they switch retrieval mode mid-session.
   useEffect(() => {
-    run();
+    if (searched) run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
@@ -85,7 +96,7 @@ export function SearchView({ mode }: { mode: SemanticMode }) {
             <button
               key={j.jobId}
               className={`result-row ${selected?.jobId === j.jobId ? "active" : ""}`}
-              onClick={() => setSelected(j)}
+              onClick={() => selectJob(j)}
             >
               <div className="result-row-head">
                 <span className="result-title">{j.title}</span>
@@ -96,12 +107,24 @@ export function SearchView({ mode }: { mode: SemanticMode }) {
                 {j.sector && <span>🏷️ {j.sector}</span>}
                 {j.salary?.display && <span>💷 {j.salary.display}</span>}
               </div>
+              {!selected && (j.highlight || j.summary || j.descriptionText) && (
+                <p className="result-snippet">
+                  {j.highlight ? (
+                    <Highlighted text={j.highlight} />
+                  ) : (
+                    j.summary || j.descriptionText.slice(0, 220)
+                  )}
+                </p>
+              )}
             </button>
           ))}
-          {data && data.hits.length === 0 && !loading && <p>No matching jobs.</p>}
+          {!searched && !loading && (
+            <p className="results-empty">Search for a role above to see matching jobs.</p>
+          )}
+          {searched && data && data.hits.length === 0 && !loading && <p>No matching jobs.</p>}
         </section>
 
-        {selected && <JobDetail job={selected} onClose={() => setSelected(null)} />}
+        {selected && <JobDetail job={selected} onClose={() => setSelected(null)} onSelect={selectJob} />}
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import cors from "@fastify/cors";
 import { z } from "zod";
 import { esClient, INDEX, config, type ChatEvent } from "@search/shared";
 import { search } from "./searchService.js";
+import { similarJobs, recommend } from "./recommendService.js";
 import { handleChat, resetSession } from "./chatService.js";
 
 const app = Fastify({ logger: true });
@@ -33,6 +34,20 @@ app.get("/api/health", async () => {
   return { ok: true, mode: config.semanticMode, es };
 });
 
+// Which retrieval modes the current index actually supports (drives the UI toggle).
+app.get("/api/modes", async () => {
+  const modes = ["bm25"];
+  try {
+    const m: any = await esClient().indices.getMapping({ index: INDEX });
+    const props = m[INDEX]?.mappings?.properties ?? {};
+    if (props.embedding) modes.push("dense");
+    if (props.semantic) modes.push("elser"); // present only if ELSER deployed at setup
+  } catch {
+    /* index missing → bm25 only */
+  }
+  return { modes, default: config.semanticMode };
+});
+
 app.post("/api/search", async (req, reply) => {
   const parsed = searchSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -51,6 +66,29 @@ app.get("/api/jobs/:id", async (req, reply) => {
     reply.code(404);
     return { error: "not found" };
   }
+});
+
+// "Similar roles" for the job being viewed.
+app.get("/api/jobs/:id/similar", async (req) => {
+  const { id } = req.params as { id: string };
+  const size = Math.min(Number((req.query as any)?.size) || 5, 20);
+  return { hits: await similarJobs(id, size) };
+});
+
+// "Recommended for you" from viewing/search history.
+const recommendSchema = z.object({
+  viewedIds: z.array(z.string()).default([]),
+  queries: z.array(z.string()).default([]),
+  size: z.number().int().min(1).max(30).optional(),
+});
+app.post("/api/recommend", async (req, reply) => {
+  const parsed = recommendSchema.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    reply.code(400);
+    return { error: parsed.error.flatten() };
+  }
+  const { viewedIds, queries, size } = parsed.data;
+  return recommend(viewedIds, queries, size ?? 12);
 });
 
 const chatSchema = z.object({ sessionId: z.string().min(1), message: z.string().min(1) });

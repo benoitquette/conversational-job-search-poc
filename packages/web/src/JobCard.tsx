@@ -1,4 +1,5 @@
 import type { SearchHit } from "./types";
+import { Highlighted } from "./Highlighted";
 
 export function JobCard({ job }: { job: SearchHit }) {
   return (
@@ -15,7 +16,9 @@ export function JobCard({ job }: { job: SearchHit }) {
         {job.salary?.display && <span>💷 {job.salary.display}</span>}
       </div>
       {(job.highlight || job.summary) && (
-        <p className="card-snippet">{job.highlight || job.summary}</p>
+        <p className="card-snippet">
+          {job.highlight ? <Highlighted text={job.highlight} /> : job.summary}
+        </p>
       )}
       <div className="card-foot">
         <span className="ref">{job.ref}</span>

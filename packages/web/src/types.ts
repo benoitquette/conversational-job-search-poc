@@ -21,6 +21,7 @@ export interface SearchHit {
   contractType: string | null;
   salary: SalaryInfo;
   summary: string;
+  descriptionText: string;
   published: string | null;
   score: number;
   highlight?: string;

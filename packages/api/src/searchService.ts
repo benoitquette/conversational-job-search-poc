@@ -43,7 +43,7 @@ const HIGHLIGHT = {
   fields: { descriptionText: { fragment_size: 160, number_of_fragments: 1 }, summary: {} },
 };
 
-function mapHit(h: any): SearchHit {
+export function mapHit(h: any): SearchHit {
   const src = h._source ?? {};
   const hl = h.highlight?.descriptionText?.[0] ?? h.highlight?.summary?.[0];
   return { ...src, score: h._score ?? 0, highlight: hl };

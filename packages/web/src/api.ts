@@ -1,4 +1,10 @@
-import type { ChatEvent, Filters, SearchResponse, SemanticMode } from "./types";
+import type { ChatEvent, Filters, SearchHit, SearchResponse, SemanticMode } from "./types";
+
+export async function getModes(): Promise<{ modes: SemanticMode[]; default: SemanticMode }> {
+  const res = await fetch("/api/modes");
+  if (!res.ok) throw new Error(`modes failed: ${res.status}`);
+  return res.json();
+}
 
 export async function searchJobs(opts: {
   q?: string;
@@ -13,6 +19,26 @@ export async function searchJobs(opts: {
     body: JSON.stringify(opts),
   });
   if (!res.ok) throw new Error(`search failed: ${res.status}`);
+  return res.json();
+}
+
+export async function getSimilar(id: string, size = 5): Promise<{ hits: SearchHit[] }> {
+  const res = await fetch(`/api/jobs/${encodeURIComponent(id)}/similar?size=${size}`);
+  if (!res.ok) throw new Error(`similar failed: ${res.status}`);
+  return res.json();
+}
+
+export async function getRecommendations(body: {
+  viewedIds: string[];
+  queries: string[];
+  size?: number;
+}): Promise<{ hits: SearchHit[]; reason?: string }> {
+  const res = await fetch("/api/recommend", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`recommend failed: ${res.status}`);
   return res.json();
 }
 
