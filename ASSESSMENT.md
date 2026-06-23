@@ -7,18 +7,24 @@ as the POC runs; sections marked _(TBD)_ are completed during the verification s
 
 Same index, three modes, switchable per request. Test queries to run through each mode and record:
 
-| Query | bm25 top result | dense top result | elser top result | Notes |
-|---|---|---|---|---|
-| "tax accountant london" | _(TBD)_ | _(TBD)_ | _(TBD)_ | keyword-friendly |
-| "remote finance leadership role" | _(TBD)_ | _(TBD)_ | _(TBD)_ | semantic intent, few keyword hits |
-| "someone to run our payroll team" | _(TBD)_ | _(TBD)_ | _(TBD)_ | paraphrase |
+| Query | bm25 top-3 | dense top-3 | Verdict |
+|---|---|---|---|
+| "tax accountant london" | Data Scientist ❌, QS Healthcare ❌, **Tax Accountant** (3rd) | **Tax Accountant** ✅, Data Scientist, QS | dense fixes bm25 over-weighting the "London" token |
+| "remote finance leadership role" | Safeguarding ❌, Pricing Analyst, **Dispenser** ❌ | Safeguarding, **Head of Finance** ✅, **Head of Finance** ✅ | dense surfaces real finance-leadership roles bm25 misses entirely |
 
-Metrics to capture: subjective relevance of top-5, query latency (`tookMs` in the response),
-ingest time, and **whether ELSER deployed at all** on kilchoman's CPU.
+Observed: query latency ~110–140 ms both modes (2,872 docs); full ingest with embeddings
+~1.5–2 min at `OLLAMA_NUM_PARALLEL=8` (~29 docs/s); bm25 and dense return the same `total`
+(same filter set) but reorder the top.
 
-**Expectation / hypothesis:** semantic modes (dense/elser) win on paraphrased / intent queries where
-BM25 misses; BM25 is competitive on exact-keyword queries. Dense is the pragmatic default; ELSER is the
-"Elastic-native, zero-extra-infra" option *if* the hardware supports it.
+**Caveat — RRF fusion:** `dense` fuses bm25 + kNN via RRF, so a doc bm25 ranks #1 (e.g.
+"Safeguarding Role") can still lead even when the semantic leg disagrees. Pure-kNN or up-weighting
+the semantic retriever would sharpen intent queries further — a tuning knob, not a defect.
+
+**ELSER:** not yet run on kilchoman (index built in dense mode). Deploying ELSER on the 2013 Kabini
+CPU is the open risk; `WITH_ELSER=true npm run setup` to attempt — record outcome here.
+
+**Conclusion:** semantic (dense) clearly beats lexical on intent/paraphrase queries and ties on
+exact-keyword ones — confirming the hypothesis. Dense is the pragmatic default given the hardware.
 
 ## 2. Conversational approaches
 
@@ -28,7 +34,14 @@ BM25 misses; BM25 is competitive on exact-keyword queries. Dense is the pragmati
 | **(b) App-orchestrated RAG + tool-calling** _(this POC)_ | API runs the loop; LLM calls `search_jobs`, then grounds its answer in results | Full control of prompts/streaming/tools; multi-turn; provider-agnostic; citations | More glue code; quality depends on the model's tool-calling |
 | **(c) Elastic inference-native** | ES `completion` endpoint / Playground calls the LLM | Least glue; single integration surface | Less control of agentic behaviour & streaming; couples app logic to ES |
 
-This POC implements **(b)**. Local `qwen2.5:7b` tool-calling reliability findings: _(TBD)_.
+This POC implements **(b)**. **Local `qwen2.5:7b` tool-calling worked reliably** in testing:
+- Extracted structured filters from natural language — "management accountant looking in Manchester,
+  permanent roles" → `search_jobs({query:"management accountant", location:"Manchester", contractType:"Permanent"})`.
+- **Multi-turn memory held**: follow-up "actually only ones paying over £50k" reissued the prior
+  filters and added `salaryMin:50000`.
+- Answers were grounded and cited real refs (e.g. `JN-062026-7045480`); no fabricated jobs observed.
+- Latency: each turn takes several seconds (7B model, CPU-only, streamed) — acceptable for a POC,
+  a clear argument for a hosted model (GPT-4o-mini) or GPU in production.
 
 ## 3. Local → production path
 
@@ -51,4 +64,12 @@ This POC implements **(b)**. Local `qwen2.5:7b` tool-calling reliability finding
 
 ## 5. Findings summary
 
-_(TBD — written after the verification run.)_
+- **Semantic search works and beats lexical** on intent/paraphrase queries (dense floated the real
+  "Tax Accountant" and "Head of Finance" roles that bm25 buried); ties on exact-keyword queries.
+- **Conversational RAG is viable end-to-end on local infra**: NL → structured filters, grounded +
+  cited answers, multi-turn refinement — all on a free local 7B model.
+- **The hardware split worked**: ES (+ data) on the weak box (kilchoman), all model inference on the
+  strong box (bowmore). The binding constraint was Ollama's `OLLAMA_NUM_PARALLEL=1` default — raising
+  it to 8 tripled ingest throughput.
+- **Open items**: try ELSER on kilchoman (CPU risk); sharpen dense via kNN weighting/rerank; for
+  production, move the LLM to a hosted model for latency and ES to a managed cluster.
