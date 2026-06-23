@@ -20,8 +20,15 @@ Observed: query latency ~110–140 ms both modes (2,872 docs); full ingest with 
 "Safeguarding Role") can still lead even when the semantic leg disagrees. Pure-kNN or up-weighting
 the semantic retriever would sharpen intent queries further — a tuning knob, not a defect.
 
-**ELSER:** not yet run on kilchoman (index built in dense mode). Deploying ELSER on the 2013 Kabini
-CPU is the open risk; `WITH_ELSER=true npm run setup` to attempt — record outcome here.
+**ELSER: confirmed NOT runnable on kilchoman.** The endpoint created and the model reached
+`state: started / fully_allocated`, but every inference call crashed the native process:
+`Fatal error: si_signo 4 (SIGILL — illegal instruction) ... libtorch_cpu.so`. The 2013 AMD
+**Kabini** CPU lacks the AVX/AVX2 instructions Elastic's libtorch build requires, so ELSER
+deploys but cannot execute. This is a hard hardware limit, not a config issue. The crashing
+endpoint/model were removed; the UI now disables the `elser` toggle (via `/api/modes`).
+**Implication:** ELSER needs a modern-CPU ML node (or Elastic Cloud). Our choice to run dense
+embeddings via Ollama on bowmore (modern CPU) and keep neural inference off kilchoman was the
+right call — and is exactly why `dense` works where `elser` can't.
 
 **Conclusion:** semantic (dense) clearly beats lexical on intent/paraphrase queries and ties on
 exact-keyword ones — confirming the hypothesis. Dense is the pragmatic default given the hardware.
