@@ -26,10 +26,12 @@ export function MapView({
   q,
   filters,
   mode,
+  onSelect,
 }: {
   q: string;
   filters: Filters;
   mode: SemanticMode;
+  onSelect?: (job: SearchHit) => void;
 }) {
   const [hits, setHits] = useState<SearchHit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,6 +67,7 @@ export function MapView({
               center={[h.geo!.lat + dlat, h.geo!.lon + dlon]}
               radius={6}
               pathOptions={{ color: "#fff", weight: 1, fillColor: colorFor(h.sector, colors), fillOpacity: 0.85 }}
+              eventHandlers={{ click: () => onSelect?.(h) }}
             >
               <Popup>
                 <strong>{h.title}</strong>

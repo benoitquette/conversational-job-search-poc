@@ -11,9 +11,9 @@ export function JobCard({ job }: { job: SearchHit }) {
         {job.contractType && <span className="badge">{job.contractType}</span>}
       </div>
       <div className="card-meta">
-        {job.location && <span>📍 {job.location}</span>}
+        <span>📍 {job.location || "Location not specified"}</span>
         {job.sector && <span>🏷️ {job.sector}</span>}
-        {job.salary?.display && <span>💷 {job.salary.display}</span>}
+        <span>💷 {job.salary?.display || "Salary not specified"}</span>
       </div>
       {(job.highlight || job.summary) && (
         <p className="card-snippet">

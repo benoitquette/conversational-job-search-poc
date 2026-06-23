@@ -17,8 +17,8 @@ export function RolePanel({ jobs, busy }: { jobs: SearchHit[]; busy: boolean }) 
         <a key={j.jobId} className="role-card" href={j.url} target="_blank" rel="noreferrer">
           <div className="role-title">{j.title}</div>
           <div className="role-meta">
-            {j.location && <span>📍 {j.location}</span>}
-            {j.salary?.display && <span>💷 {j.salary.display}</span>}
+            <span>📍 {j.location || "Location not specified"}</span>
+            <span>💷 {j.salary?.display || "Salary not specified"}</span>
           </div>
           <div className="role-foot">
             {j.contractType && <span className="role-badge">{j.contractType}</span>}

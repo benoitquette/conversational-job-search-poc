@@ -14,7 +14,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); }
 button { cursor: pointer; font: inherit; }
 a { color: var(--navy-2); }
 
-.app { max-width: 1440px; margin: 0 auto; }
+.app { width: 100%; }
 
 /* Top bar */
 .topbar {
@@ -42,8 +42,7 @@ main { padding: 22px; }
 .searchbar button, .chat-input button {
   background: var(--green); color: #04231b; border: none; padding: 0 22px; border-radius: 8px; font-weight: 600;
 }
-.layout { display: grid; grid-template-columns: 220px 1fr; gap: 22px; align-items: start; }
-.layout.with-detail { grid-template-columns: 200px minmax(0, 1fr) 380px; }
+.layout { display: grid; grid-template-columns: 220px minmax(0, 1fr) 380px; gap: 22px; align-items: start; }
 .filters { font-size: 14px; }
 .facet-group { margin-bottom: 18px; }
 .facet-group h4 { margin: 0 0 8px; color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: .6px; }

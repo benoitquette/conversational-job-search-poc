@@ -101,7 +101,7 @@ export function SearchView({ mode }: { mode: SemanticMode }) {
         )}
       </div>
 
-      <div className={`layout ${selected && view === "list" ? "with-detail" : ""}`}>
+      <div className="layout">
         <aside className="filters">
           {data && (
             <>
@@ -128,9 +128,9 @@ export function SearchView({ mode }: { mode: SemanticMode }) {
                         {j.contractType && <span className="badge">{j.contractType}</span>}
                       </div>
                       <div className="result-meta">
-                        {j.location && <span>📍 {j.location}</span>}
+                        <span>📍 {j.location || "Location not specified"}</span>
                         {j.sector && <span>🏷️ {j.sector}</span>}
-                        {j.salary?.display && <span>💷 {j.salary.display}</span>}
+                        <span>💷 {j.salary?.display || "Salary not specified"}</span>
                       </div>
                       {!selected && (j.highlight || j.summary || j.descriptionText) && (
                         <p className="result-snippet">
@@ -148,14 +148,12 @@ export function SearchView({ mode }: { mode: SemanticMode }) {
             </>
           )}
 
-          {view === "map" && <MapView q={activeQuery} filters={filters} mode={mode} />}
+          {view === "map" && <MapView q={activeQuery} filters={filters} mode={mode} onSelect={selectJob} />}
           {view === "insights" && <InsightsView q={activeQuery} filters={filters} mode={mode} />}
           {view === "similarity" && <ScatterView q={activeQuery} filters={filters} mode={mode} onSelect={selectJob} />}
         </section>
 
-        {selected && view === "list" && (
-          <JobDetail job={selected} onClose={() => setSelected(null)} onSelect={selectJob} />
-        )}
+        <JobDetail job={selected} onClose={() => setSelected(null)} onSelect={selectJob} />
       </div>
 
       {showCompare && (
