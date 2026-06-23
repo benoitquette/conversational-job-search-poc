@@ -20,15 +20,23 @@ Observed: query latency ~110–140 ms both modes (2,872 docs); full ingest with 
 "Safeguarding Role") can still lead even when the semantic leg disagrees. Pure-kNN or up-weighting
 the semantic retriever would sharpen intent queries further — a tuning knob, not a defect.
 
-**ELSER: confirmed NOT runnable on kilchoman.** The endpoint created and the model reached
-`state: started / fully_allocated`, but every inference call crashed the native process:
+**ELSER: crashed on kilchoman, resolved by an ML node on bowmore.** On kilchoman the model
+reached `fully_allocated` but every inference crashed the native process:
 `Fatal error: si_signo 4 (SIGILL — illegal instruction) ... libtorch_cpu.so`. The 2013 AMD
-**Kabini** CPU lacks the AVX/AVX2 instructions Elastic's libtorch build requires, so ELSER
-deploys but cannot execute. This is a hard hardware limit, not a config issue. The crashing
-endpoint/model were removed; the UI now disables the `elser` toggle (via `/api/modes`).
-**Implication:** ELSER needs a modern-CPU ML node (or Elastic Cloud). Our choice to run dense
-embeddings via Ollama on bowmore (modern CPU) and keep neural inference off kilchoman was the
-right call — and is exactly why `dense` works where `elser` can't.
+**Kabini** CPU lacks the AVX/AVX2 that Elastic's libtorch build requires — a hard hardware limit.
+
+Resolution: form a **2-node cluster** — kilchoman as master+data (no `ml` role), and a dedicated
+**`ml`-only ES node on bowmore** (modern AVX2 CPU) that joins over the LAN transport. ELSER now
+deploys and runs on bowmore while the index stays on kilchoman; inference is dispatched to the ml
+node automatically. `/api/modes` advertises `elser` once the `semantic` field exists, and the UI
+enables the toggle.
+
+Two lessons worth carrying to production:
+- **ELSER (and any ES PyTorch model) needs a modern-CPU ML node** — fine on Elastic Cloud or a
+  current-gen box, impossible on old hardware. Keeping neural inference off the weak box was correct.
+- **Indexing into a `semantic_text` field is slow** (each bulk embeds via ELSER in-cluster). Large
+  bulks time out; the ingester indexes in small interleaved 50-doc batches so docs land
+  progressively and failures surface immediately rather than after embedding everything.
 
 **Conclusion:** semantic (dense) clearly beats lexical on intent/paraphrase queries and ties on
 exact-keyword ones — confirming the hypothesis. Dense is the pragmatic default given the hardware.
