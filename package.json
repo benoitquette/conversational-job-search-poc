@@ -1,0 +1,27 @@
+{
+  "name": "mp-search-poc",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Conversational job-search POC — Elasticsearch (kilchoman) + local LLM (Ollama on bowmore)",
+  "workspaces": [
+    "packages/shared",
+    "packages/ingest",
+    "packages/api",
+    "packages/web"
+  ],
+  "scripts": {
+    "setup": "tsx packages/ingest/src/setup-index.ts",
+    "ingest": "tsx packages/ingest/src/ingest.ts",
+    "dev:api": "tsx watch packages/api/src/server.ts",
+    "dev:web": "npm --workspace @search/web run dev",
+    "dev": "concurrently -k -n api,web -c blue,magenta \"npm:dev:api\" \"npm:dev:web\"",
+    "es:up": "ssh 192.168.68.56 'cd ~/mp-search && docker compose up -d'",
+    "es:logs": "ssh 192.168.68.56 'cd ~/mp-search && docker compose logs -f --tail=100'"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

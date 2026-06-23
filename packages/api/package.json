@@ -1,0 +1,13 @@
+{
+  "name": "@search/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@fastify/cors": "^10.0.1",
+    "@search/shared": "*",
+    "fastify": "^5.1.0",
+    "openai": "^4.77.0",
+    "zod": "^3.24.1"
+  }
+}

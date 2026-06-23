@@ -1,0 +1,37 @@
+# Elasticsearch for the MP search POC — runs ON kilchoman (192.168.68.56).
+# Copy this file to kilchoman (e.g. ~/mp-search/docker-compose.yml) and `docker compose up -d`.
+# Security is OFF: the cluster is LAN-only and kilchoman's firewall only forwards 443 externally.
+# Stop the heavy media containers first to free RAM (see README).
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.1
+    container_name: mp-search-es
+    environment:
+      - node.name=mp-search-es
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.license.self_generated.type=trial   # enables ML/ELSER for the elser SEMANTIC_MODE
+      - xpack.ml.enabled=true
+      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+      - bootstrap.memory_lock=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    mem_limit: 5g
+    ports:
+      - "9200:9200"
+    volumes:
+      - mp-search-esdata:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\"'"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+
+volumes:
+  mp-search-esdata:
+    driver: local

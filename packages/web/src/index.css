@@ -1,0 +1,85 @@
+:root {
+  --navy: #0c2340;
+  --navy-2: #14315a;
+  --green: #00a37a;
+  --ink: #1c2733;
+  --muted: #5b6b7b;
+  --line: #e3e8ee;
+  --bg: #f4f6f9;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); }
+button { cursor: pointer; font: inherit; }
+a { color: var(--navy-2); }
+
+.app { max-width: 1100px; margin: 0 auto; }
+
+/* Top bar */
+.topbar {
+  display: flex; align-items: center; gap: 24px;
+  background: var(--navy); color: #fff; padding: 14px 22px;
+  position: sticky; top: 0; z-index: 10;
+}
+.brand { font-weight: 700; font-size: 18px; letter-spacing: .2px; }
+.brand span { color: var(--green); }
+.tabs { display: flex; gap: 6px; margin-left: auto; }
+.tabs button, .mode-switch button {
+  background: transparent; color: #c7d2de; border: 1px solid transparent;
+  padding: 6px 12px; border-radius: 6px;
+}
+.tabs button.active { background: var(--navy-2); color: #fff; }
+.mode-switch { display: flex; gap: 4px; background: rgba(255,255,255,.08); padding: 3px; border-radius: 8px; }
+.mode-switch button { padding: 4px 10px; font-size: 13px; }
+.mode-switch button.active { background: var(--green); color: #04231b; font-weight: 600; }
+
+main { padding: 22px; }
+
+/* Search */
+.searchbar { display: flex; gap: 8px; margin-bottom: 18px; }
+.searchbar input { flex: 1; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; font-size: 15px; }
+.searchbar button, .chat-input button {
+  background: var(--green); color: #04231b; border: none; padding: 0 22px; border-radius: 8px; font-weight: 600;
+}
+.layout { display: grid; grid-template-columns: 220px 1fr; gap: 22px; }
+.filters { font-size: 14px; }
+.facet-group { margin-bottom: 18px; }
+.facet-group h4 { margin: 0 0 8px; color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: .6px; }
+.facet {
+  display: flex; justify-content: space-between; width: 100%; text-align: left;
+  background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; margin-bottom: 5px;
+}
+.facet.active { border-color: var(--green); background: #eafaf4; }
+.facet-count { color: var(--muted); }
+.results-head { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+
+/* Cards */
+.card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin-bottom: 12px; }
+.card-head { display: flex; justify-content: space-between; align-items: start; gap: 10px; }
+.card-title { font-weight: 700; font-size: 16px; text-decoration: none; }
+.card-title:hover { text-decoration: underline; }
+.badge { background: var(--navy); color: #fff; font-size: 11px; padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
+.card-meta { display: flex; flex-wrap: wrap; gap: 14px; color: var(--muted); font-size: 13px; margin: 8px 0; }
+.card-snippet { margin: 6px 0 10px; color: #38444f; font-size: 14px; line-height: 1.45; }
+.card-foot { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; }
+
+/* Chat */
+.chat-view { display: flex; flex-direction: column; height: calc(100vh - 120px); }
+.chat-thread { flex: 1; overflow-y: auto; padding-right: 6px; }
+.chat-empty { color: var(--muted); text-align: center; margin-top: 40px; }
+.turn { margin-bottom: 16px; }
+.turn.user { text-align: right; }
+.bubble {
+  display: inline-block; max-width: 80%; padding: 11px 15px; border-radius: 12px;
+  white-space: pre-wrap; line-height: 1.5; text-align: left;
+}
+.turn.user .bubble { background: var(--navy); color: #fff; }
+.turn.assistant .bubble { background: #fff; border: 1px solid var(--line); }
+.chat-jobs { margin-top: 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.chip { background: #fff; border: 1px solid var(--green); color: var(--navy-2); border-radius: 20px; padding: 6px 13px; font-size: 13px; }
+.chip:hover { background: #eafaf4; }
+.chat-input { display: flex; gap: 8px; margin-top: 12px; }
+.chat-input input { flex: 1; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; font-size: 15px; }
+.chat-input button:disabled { opacity: .5; }
