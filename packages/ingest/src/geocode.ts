@@ -86,7 +86,14 @@ async function nominatim(place: string): Promise<LatLon | null> {
   }
 }
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+async function mapPool<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, async () => {
+      while (next < items.length) await fn(items[next++]);
+    }),
+  );
+}
 
 async function main() {
   const es = esClient();
@@ -100,21 +107,21 @@ async function main() {
   console.log(`${locations.length} distinct locations`);
 
   const cache: Record<string, LatLon> = existsSync(CACHE) ? JSON.parse(readFileSync(CACHE, "utf8")) : {};
-  let net = 0;
+
+  // Gazetteer hits are instant; collect the rest for a small concurrent Nominatim pass.
+  const misses: string[] = [];
   for (const loc of locations) {
     if (cache[loc] || SKIP.has(loc)) continue;
-    if (GAZETTEER[loc]) {
-      cache[loc] = GAZETTEER[loc];
-      continue;
-    }
-    await sleep(1100); // Nominatim: max ~1 req/s
-    const hit = await nominatim(loc);
-    if (hit) {
-      cache[loc] = hit;
-      net++;
-    }
-    if (net % 10 === 0 && net) console.log(`  geocoded ${net} via Nominatim…`);
+    if (GAZETTEER[loc]) cache[loc] = GAZETTEER[loc];
+    else misses.push(loc);
   }
+  console.log(`  ${Object.keys(cache).length} from gazetteer, ${misses.length} via Nominatim (concurrency 5)…`);
+  let done = 0;
+  await mapPool(misses, 5, async (loc) => {
+    const hit = await nominatim(loc);
+    if (hit) cache[loc] = hit;
+    if (++done % 40 === 0) console.log(`  ${done}/${misses.length}`);
+  });
   writeFileSync(CACHE, JSON.stringify(cache, null, 2));
   console.log(`✓ geocache.json written (${Object.keys(cache).length} places)`);
 

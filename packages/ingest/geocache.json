@@ -1,0 +1,378 @@
+{
+  "London": {
+    "lat": 51.5074,
+    "lon": -0.1278
+  },
+  "City of London": {
+    "lat": 51.5155,
+    "lon": -0.0922
+  },
+  "Leeds": {
+    "lat": 53.8008,
+    "lon": -1.5491
+  },
+  "Bristol": {
+    "lat": 51.4545,
+    "lon": -2.5879
+  },
+  "Manchester": {
+    "lat": 53.4808,
+    "lon": -2.2426
+  },
+  "Birmingham": {
+    "lat": 52.4862,
+    "lon": -1.8904
+  },
+  "Liverpool": {
+    "lat": 53.4084,
+    "lon": -2.9916
+  },
+  "Exeter": {
+    "lat": 50.7184,
+    "lon": -3.5339
+  },
+  "Glasgow": {
+    "lat": 55.8642,
+    "lon": -4.2518
+  },
+  "England": {
+    "lat": 52.3,
+    "lon": -1.5
+  },
+  "Nottingham": {
+    "lat": 52.9548,
+    "lon": -1.1581
+  },
+  "Reading": {
+    "lat": 51.4543,
+    "lon": -0.9781
+  },
+  "Brighton": {
+    "lat": 50.8225,
+    "lon": -0.1372
+  },
+  "Southampton": {
+    "lat": 50.9097,
+    "lon": -1.4044
+  },
+  "Edinburgh": {
+    "lat": 55.9533,
+    "lon": -3.1883
+  },
+  "Sheffield": {
+    "lat": 53.3811,
+    "lon": -1.4701
+  },
+  "Cardiff": {
+    "lat": 51.4816,
+    "lon": -3.1791
+  },
+  "Coventry": {
+    "lat": 52.4068,
+    "lon": -1.5197
+  },
+  "Milton Keynes": {
+    "lat": 52.04,
+    "lon": -0.76
+  },
+  "Crawley": {
+    "lat": 51.1091,
+    "lon": -0.1872
+  },
+  "Leicester": {
+    "lat": 52.6369,
+    "lon": -1.1398
+  },
+  "Bradford": {
+    "lat": 53.795,
+    "lon": -1.759
+  },
+  "Oxford": {
+    "lat": 51.752,
+    "lon": -1.2577
+  },
+  "Newcastle upon Tyne": {
+    "lat": 54.9783,
+    "lon": -1.6178
+  },
+  "Preston": {
+    "lat": 53.7632,
+    "lon": -2.7031
+  },
+  "South Croydon": {
+    "lat": 51.3622,
+    "lon": -0.0936
+  },
+  "Wolverhampton": {
+    "lat": 52.5862,
+    "lon": -2.1288
+  },
+  "Slough": {
+    "lat": 51.5105,
+    "lon": -0.5954
+  },
+  "Swindon": {
+    "lat": 51.5558,
+    "lon": -1.7797
+  },
+  "Derby": {
+    "lat": 52.9228,
+    "lon": -1.4765
+  },
+  "West End": {
+    "lat": 51.5142,
+    "lon": -0.142
+  },
+  "Bath": {
+    "lat": 51.3811,
+    "lon": -2.359
+  },
+  "Bournemouth": {
+    "lat": 50.7192,
+    "lon": -1.8808
+  },
+  "York": {
+    "lat": 53.959,
+    "lon": -1.0815
+  },
+  "Belfast": {
+    "lat": 54.5973,
+    "lon": -5.9301
+  },
+  "Cambridge": {
+    "lat": 52.2053,
+    "lon": 0.1218
+  },
+  "Luton": {
+    "lat": 51.8787,
+    "lon": -0.42
+  },
+  "Portsmouth": {
+    "lat": 50.8198,
+    "lon": -1.088
+  },
+  "Scotland": {
+    "lat": 56.5,
+    "lon": -4.2
+  },
+  "Aberdeen": {
+    "lat": 57.1497,
+    "lon": -2.0943
+  },
+  "Norwich": {
+    "lat": 52.6309,
+    "lon": 1.2974
+  },
+  "Wales": {
+    "lat": 52.3,
+    "lon": -3.8
+  },
+  "Watford": {
+    "lat": 51.6565,
+    "lon": -0.3903
+  },
+  "West Midlands": {
+    "lat": 52.505432,
+    "lon": -1.9646782
+  },
+  "Elmbridge": {
+    "lat": 51.3534577,
+    "lon": -0.3992718
+  },
+  "Maidstone": {
+    "lat": 51.2748258,
+    "lon": 0.5231646
+  },
+  "Stockport": {
+    "lat": 53.407901,
+    "lon": -2.160243
+  },
+  "Woking": {
+    "lat": 51.3201891,
+    "lon": -0.5564726
+  },
+  "Wakefield": {
+    "lat": 53.6829541,
+    "lon": -1.4967286
+  },
+  "Cheshire": {
+    "lat": 53.2141028,
+    "lon": -2.4717701
+  },
+  "Warrington": {
+    "lat": 53.4015716,
+    "lon": -2.5681941
+  },
+  "Greater Manchester": {
+    "lat": 53.5065249,
+    "lon": -2.3374401
+  },
+  "Plymouth": {
+    "lat": 50.3714122,
+    "lon": -4.1424451
+  },
+  "Horsham": {
+    "lat": 51.0630273,
+    "lon": -0.3295028
+  },
+  "Eastbourne": {
+    "lat": 50.7664372,
+    "lon": 0.2781546
+  },
+  "Dartford": {
+    "lat": 51.4443059,
+    "lon": 0.21807
+  },
+  "Farnham": {
+    "lat": 51.2151749,
+    "lon": -0.7984854
+  },
+  "Stoke on Trent": {
+    "lat": 53.0162014,
+    "lon": -2.1812607
+  },
+  "Crewe": {
+    "lat": 53.0996153,
+    "lon": -2.4414627
+  },
+  "East Midlands": {
+    "lat": 53.1188177,
+    "lon": -1.2597069
+  },
+  "Tunbridge Wells": {
+    "lat": 51.1371483,
+    "lon": 0.2673446
+  },
+  "Oxfordshire": {
+    "lat": 51.833333,
+    "lon": -1.25
+  },
+  "West London": {
+    "lat": 51.532568,
+    "lon": -0.4807
+  },
+  "Cheltenham": {
+    "lat": 51.8995685,
+    "lon": -2.0711559
+  },
+  "Gloucestershire": {
+    "lat": 51.7643786,
+    "lon": -2.1880662
+  },
+  "Kingston Upon Hull": {
+    "lat": 53.7623863,
+    "lon": -0.3301214
+  },
+  "Hove": {
+    "lat": 50.8286917,
+    "lon": -0.1745744
+  },
+  "Truro": {
+    "lat": 50.2633381,
+    "lon": -5.0510525
+  },
+  "Guildford": {
+    "lat": 51.2356068,
+    "lon": -0.5732063
+  },
+  "Ashford": {
+    "lat": 51.148555,
+    "lon": 0.8722566
+  },
+  "Uxbridge": {
+    "lat": 51.5449509,
+    "lon": -0.4816672
+  },
+  "Taunton": {
+    "lat": 51.0147895,
+    "lon": -3.1029086
+  },
+  "Berkshire": {
+    "lat": 51.4534889,
+    "lon": -1.031873
+  },
+  "Peterborough": {
+    "lat": 52.5725769,
+    "lon": -0.2427336
+  },
+  "Pendle": {
+    "lat": 53.8790402,
+    "lon": -2.1717795
+  },
+  "Derbyshire": {
+    "lat": 53.1666927,
+    "lon": -1.5833223
+  },
+  "Eastleigh": {
+    "lat": 50.9691736,
+    "lon": -1.3517331
+  },
+  "North London": {
+    "lat": 51.6183389,
+    "lon": -0.0441499
+  },
+  "North West England": {
+    "lat": 54.0680925,
+    "lon": -2.6852531
+  },
+  "Northallerton": {
+    "lat": 54.3404812,
+    "lon": -1.4344936
+  },
+  "Salford": {
+    "lat": 53.4877463,
+    "lon": -2.2891921
+  },
+  "South West England": {
+    "lat": 51.0339991,
+    "lon": -2.9490119
+  },
+  "Sevenoaks": {
+    "lat": 51.2745219,
+    "lon": 0.1961166
+  },
+  "Weybridge": {
+    "lat": 51.3727175,
+    "lon": -0.4549297
+  },
+  "Wirral": {
+    "lat": 53.3409714,
+    "lon": -3.0500916
+  },
+  "Camberley": {
+    "lat": 51.3392845,
+    "lon": -0.7460981
+  },
+  "Bicester": {
+    "lat": 51.8988385,
+    "lon": -1.151877
+  },
+  "St Albans": {
+    "lat": 51.753051,
+    "lon": -0.3379675
+  },
+  "Chiswick": {
+    "lat": 51.4923137,
+    "lon": -0.263818
+  },
+  "Gatwick": {
+    "lat": 51.1970901,
+    "lon": -0.6943123
+  },
+  "Godalming": {
+    "lat": 51.1855806,
+    "lon": -0.6126567
+  },
+  "Leatherhead": {
+    "lat": 51.2955044,
+    "lon": -0.32931
+  },
+  "Newbury": {
+    "lat": 51.4020243,
+    "lon": -1.3242212
+  },
+  "Lewes": {
+    "lat": 50.8746139,
+    "lon": 0.0051153
+  }
+}
