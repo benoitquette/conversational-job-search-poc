@@ -1,36 +1,33 @@
-# Elasticsearch for the MP search POC — runs ON kilchoman (192.168.68.56).
-# Copy this file to kilchoman (e.g. ~/mp-search/docker-compose.yml) and `docker compose up -d`.
-# Security is OFF: the cluster is LAN-only and kilchoman's firewall only forwards 443 externally.
-# Stop the heavy media containers first to free RAM (see README).
+# Elasticsearch DATA + MASTER node — runs ON kilchoman (192.168.68.56).
+# Part of a 2-node cluster (mp-search): this node holds the data/index; the ML node on
+# bowmore runs ELSER (kilchoman's old CPU lacks AVX2 and crashes libtorch).
+# Host networking so transport (9300) is reachable across the LAN. Security off (LAN-only).
 services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.1
     container_name: mp-search-es
+    network_mode: host
     environment:
-      - node.name=mp-search-es
-      - discovery.type=single-node
+      - cluster.name=mp-search
+      - node.name=kilchoman
+      - node.roles=master,data,ingest,transform,remote_cluster_client
+      - network.host=0.0.0.0
+      - network.publish_host=192.168.68.56
+      - http.port=9200
+      - transport.port=9300
+      - discovery.seed_hosts=192.168.68.56:9300,192.168.68.51:9300
+      - cluster.initial_master_nodes=kilchoman
       - xpack.security.enabled=false
-      - xpack.license.self_generated.type=trial   # enables ML/ELSER for the elser SEMANTIC_MODE
+      - xpack.license.self_generated.type=trial
       - xpack.ml.enabled=true
       - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
       - bootstrap.memory_lock=false
     ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-      nofile:
-        soft: 65536
-        hard: 65536
-    mem_limit: 5g
-    ports:
-      - "9200:9200"
+      memlock: { soft: -1, hard: -1 }
+      nofile: { soft: 65536, hard: 65536 }
+    mem_limit: 4g
     volumes:
       - mp-search-esdata:/usr/share/elasticsearch/data
-    healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\"'"]
-      interval: 15s
-      timeout: 10s
-      retries: 20
 
 volumes:
   mp-search-esdata:
