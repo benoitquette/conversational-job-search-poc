@@ -1,4 +1,44 @@
-import type { ChatEvent, Filters, SearchHit, SearchResponse, SemanticMode } from "./types";
+import type {
+  ChatEvent,
+  Filters,
+  Insights,
+  ScatterPoint,
+  SearchHit,
+  SearchResponse,
+  SemanticMode,
+} from "./types";
+
+type AnalyticsArgs = { q?: string; filters?: Filters; mode?: SemanticMode; size?: number };
+
+export async function getInsights(args: AnalyticsArgs): Promise<Insights> {
+  const res = await fetch("/api/insights", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(args),
+  });
+  if (!res.ok) throw new Error(`insights failed: ${res.status}`);
+  return res.json();
+}
+
+export async function getMapResults(args: AnalyticsArgs): Promise<{ hits: SearchHit[] }> {
+  const res = await fetch("/api/map", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(args),
+  });
+  if (!res.ok) throw new Error(`map failed: ${res.status}`);
+  return res.json();
+}
+
+export async function getScatter(args: AnalyticsArgs): Promise<{ points: ScatterPoint[] }> {
+  const res = await fetch("/api/scatter", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(args),
+  });
+  if (!res.ok) throw new Error(`scatter failed: ${res.status}`);
+  return res.json();
+}
 
 export async function getModes(): Promise<{ modes: SemanticMode[]; default: SemanticMode }> {
   const res = await fetch("/api/modes");

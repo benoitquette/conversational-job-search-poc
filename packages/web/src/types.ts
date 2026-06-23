@@ -23,6 +23,7 @@ export interface SearchHit {
   summary: string;
   descriptionText: string;
   published: string | null;
+  geo?: { lat: number; lon: number };
   score: number;
   highlight?: string;
 }
@@ -53,6 +54,20 @@ export interface Filters {
   sector?: string;
   contractType?: string;
   salaryMin?: number;
+}
+
+export interface Insights {
+  total: number;
+  salaryHistogram: { from: number; count: number }[];
+  sector: FacetBucket[];
+  location: FacetBucket[];
+  contractType: FacetBucket[];
+  salary: { min: number | null; max: number | null; avg: number | null; count: number };
+}
+
+export interface ScatterPoint extends SearchHit {
+  x: number;
+  y: number;
 }
 
 export type ChatEvent =

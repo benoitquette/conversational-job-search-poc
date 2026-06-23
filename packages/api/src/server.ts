@@ -4,28 +4,39 @@ import { z } from "zod";
 import { esClient, INDEX, config, type ChatEvent } from "@search/shared";
 import { search } from "./searchService.js";
 import { similarJobs, recommend } from "./recommendService.js";
+import { insights, scatter, mapResults } from "./analyticsService.js";
 import { handleChat, resetSession } from "./chatService.js";
 
 const app = Fastify({ logger: true });
 
 await app.register(cors, { origin: config.api.webOrigin });
 
+const filtersSchema = z
+  .object({
+    location: z.string().optional(),
+    sector: z.string().optional(),
+    subSector: z.string().optional(),
+    industry: z.string().optional(),
+    contractType: z.string().optional(),
+    salaryMin: z.number().optional(),
+    salaryMax: z.number().optional(),
+  })
+  .optional();
+
 const searchSchema = z.object({
   q: z.string().optional(),
-  filters: z
-    .object({
-      location: z.string().optional(),
-      sector: z.string().optional(),
-      subSector: z.string().optional(),
-      industry: z.string().optional(),
-      contractType: z.string().optional(),
-      salaryMin: z.number().optional(),
-      salaryMax: z.number().optional(),
-    })
-    .optional(),
+  filters: filtersSchema,
   page: z.number().int().min(0).optional(),
   size: z.number().int().min(1).max(50).optional(),
   sort: z.enum(["relevance", "date"]).optional(),
+  mode: z.enum(["bm25", "dense", "elser"]).optional(),
+});
+
+// insights/scatter operate over larger result sets than the paged search
+const analyticsSchema = z.object({
+  q: z.string().optional(),
+  filters: filtersSchema,
+  size: z.number().int().min(1).max(300).optional(),
   mode: z.enum(["bm25", "dense", "elser"]).optional(),
 });
 
@@ -89,6 +100,36 @@ app.post("/api/recommend", async (req, reply) => {
   }
   const { viewedIds, queries, size } = parsed.data;
   return recommend(viewedIds, queries, size ?? 12);
+});
+
+// Insights / charts for the matching set.
+app.post("/api/insights", async (req, reply) => {
+  const parsed = analyticsSchema.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    reply.code(400);
+    return { error: parsed.error.flatten() };
+  }
+  return insights(parsed.data);
+});
+
+// Semantic 2D scatter of the result set (PCA of embeddings).
+app.post("/api/scatter", async (req, reply) => {
+  const parsed = analyticsSchema.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    reply.code(400);
+    return { error: parsed.error.flatten() };
+  }
+  return scatter(parsed.data);
+});
+
+// Map: matching jobs that have geo coordinates.
+app.post("/api/map", async (req, reply) => {
+  const parsed = analyticsSchema.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    reply.code(400);
+    return { error: parsed.error.flatten() };
+  }
+  return mapResults(parsed.data);
 });
 
 const chatSchema = z.object({ sessionId: z.string().min(1), message: z.string().min(1) });

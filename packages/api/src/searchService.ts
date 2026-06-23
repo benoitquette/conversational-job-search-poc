@@ -14,7 +14,7 @@ import {
 
 const BM25_FIELDS = ["title^3", "descriptionText", "summary"];
 
-function filterClauses(f: JobFilters = {}): any[] {
+export function filterClauses(f: JobFilters = {}): any[] {
   const clauses: any[] = [];
   const term = (field: string, value?: string) => {
     if (value) clauses.push({ term: { [field]: { value, case_insensitive: true } } });
@@ -31,8 +31,11 @@ function filterClauses(f: JobFilters = {}): any[] {
   return clauses;
 }
 
+/** Fields never worth shipping to the client (large / internal). */
+export const SOURCE_EXCLUDES = ["embedding", "semantic", "semanticContent"];
+
 /** bool query used by bm25 mode, date-sort, and as one leg of the RRF fusions. */
-function baseQuery(q: string | undefined, filters: any[]): any {
+export function baseQuery(q: string | undefined, filters: any[]): any {
   const must = q
     ? [{ multi_match: { query: q, fields: BM25_FIELDS, type: "best_fields", operator: "or" } }]
     : [{ match_all: {} }];
@@ -98,6 +101,7 @@ export async function search(params: SearchParams): Promise<SearchResponse> {
       size,
       query: baseQuery(q, filters),
       highlight: HIGHLIGHT,
+      _source_excludes: SOURCE_EXCLUDES,
       sort: params.sort === "date" ? [{ published: "desc" }] : undefined,
     });
   } else if (mode === "dense") {
@@ -125,6 +129,7 @@ export async function search(params: SearchParams): Promise<SearchResponse> {
         },
       } as any,
       highlight: HIGHLIGHT,
+      _source_excludes: SOURCE_EXCLUDES,
     });
   } else {
     // elser
@@ -147,6 +152,7 @@ export async function search(params: SearchParams): Promise<SearchResponse> {
         },
       } as any,
       highlight: HIGHLIGHT,
+      _source_excludes: SOURCE_EXCLUDES,
     });
   }
 
