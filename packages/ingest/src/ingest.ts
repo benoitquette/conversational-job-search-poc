@@ -49,40 +49,39 @@ async function main() {
 
   const normalized = rawJobs.map(normalizeJob);
 
-  if (wantDense) {
-    console.log(`Embedding ${normalized.length} jobs with '${config.embed.model}' (concurrency 8)…`);
-    let done = 0;
-    await mapPool(normalized, 8, async (n) => {
-      (n as any).embedding = await embed(n.semanticContent);
-      if (++done % 200 === 0) console.log(`  embedded ${done}/${normalized.length}`);
-    });
-  } else {
-    console.log("Skipping embeddings (WITH_DENSE disabled).");
-  }
-
-  console.log(`Bulk indexing into '${INDEX}'…`);
-  const operations: any[] = [];
-  for (const n of normalized) {
-    const source: any = { ...n.doc, semanticContent: n.semanticContent };
-    if (wantDense) source.embedding = (n as any).embedding;
-    operations.push({ index: { _index: INDEX, _id: n.doc.jobId } });
-    operations.push(source);
-  }
-
-  // Chunk bulk requests to keep payloads reasonable.
-  const CHUNK = 500 * 2;
+  // Interleave embed + index per small batch, so documents become searchable progressively and
+  // any failure surfaces on the first batch (not after embedding everything). With a semantic_text
+  // field each bulk also embeds through ELSER in-cluster, so keep batches small (50 docs).
+  const BATCH = 50;
+  console.log(
+    `Indexing ${normalized.length} jobs into '${INDEX}' in batches of ${BATCH}` +
+      (wantDense ? ` (dense via '${config.embed.model}')` : " (no dense embeddings)") +
+      "…",
+  );
   let indexed = 0;
-  for (let i = 0; i < operations.length; i += CHUNK) {
-    const slice = operations.slice(i, i + CHUNK);
-    const resp = await es.bulk({ operations: slice, refresh: i + CHUNK >= operations.length });
+  for (let i = 0; i < normalized.length; i += BATCH) {
+    const batch = normalized.slice(i, i + BATCH);
+    if (wantDense) {
+      await mapPool(batch, 8, async (n) => {
+        (n as any).embedding = await embed(n.semanticContent);
+      });
+    }
+    const operations: any[] = [];
+    for (const n of batch) {
+      const source: any = { ...n.doc, semanticContent: n.semanticContent };
+      if (wantDense) source.embedding = (n as any).embedding;
+      operations.push({ index: { _index: INDEX, _id: n.doc.jobId } }, source);
+    }
+    const resp = await es.bulk({ operations, refresh: false });
     if (resp.errors) {
       const firstErr = resp.items.find((it: any) => it.index?.error)?.index?.error;
       throw new Error(`Bulk errors, first: ${JSON.stringify(firstErr)}`);
     }
-    indexed += slice.length / 2;
+    indexed += batch.length;
     console.log(`  indexed ${indexed}/${normalized.length}`);
   }
 
+  await es.indices.refresh({ index: INDEX });
   const count = await es.count({ index: INDEX });
   console.log(`✓ Done. Index '${INDEX}' now has ${count.count} documents.`);
 }

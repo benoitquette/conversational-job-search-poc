@@ -11,7 +11,7 @@ export function esClient(): Client {
       config.es.username && config.es.password
         ? { username: config.es.username, password: config.es.password }
         : undefined,
-    requestTimeout: 120_000, // ELSER on the old CPU can be slow
+    requestTimeout: 600_000, // bulk-indexing embeds via ELSER in-cluster; keep generous
   });
   return client;
 }
