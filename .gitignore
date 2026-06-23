@@ -6,3 +6,4 @@ packages/web/dist/
 .DS_Store
 /tmp/
 *.local
+eval-judgments.json

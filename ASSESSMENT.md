@@ -20,6 +20,40 @@ Observed: query latency ~110–140 ms both modes (2,872 docs); full ingest with 
 "Safeguarding Role") can still lead even when the semantic leg disagrees. Pure-kNN or up-weighting
 the semantic retriever would sharpen intent queries further — a tuning knob, not a defect.
 
+### Quantitative evaluation (`npm run eval`)
+
+To make "which mode?" conclusive rather than anecdotal, an offline harness runs a fixed 20-query
+set (mix of exact-keyword and intent/paraphrase) through each mode, judges the top-10 of each with
+an LLM (qwen2.5:7b, 0–3 relevance), and reports **nDCG@10** + **precision@10**. Judgments are
+written to `eval-judgments.json` for hand spot-checking.
+
+| Mode | nDCG@10 | P@10 |
+|---|---|---|
+| bm25 | 0.811 | 0.370 |
+| dense | 0.807 | 0.530 |
+| elser | **0.816** | **0.540** |
+
+**Conclusive:** semantic (dense/elser) beats lexical (bm25) on **precision@10** (≈0.53 vs 0.37) — a
+large, consistent gap. The mechanism is clear on intent queries, e.g. *"someone to run our payroll
+team"*: dense returns Payroll Team Leader / Manager / Director; bm25 keyword-matches "team" and
+returns Team Administrator, EA to CEO. This validates a **hybrid semantic default**.
+
+**Not conclusive:** elser vs dense (0.816 vs 0.807 nDCG; 0.54 vs 0.53 P@10). That gap is **smaller
+than the judge's own error** — the spot-check caught qwen scoring obvious "Tax Accountant" roles as
+0 for "tax accountant london". nDCG is ~tied (0.81) across modes because top-1 quality is similar;
+semantic's edge is breadth (filling the page), captured by P@10.
+
+**Method lesson (the point of the harness):** you know tuning is conclusive when the effect size
+exceeds the judge's noise floor. Semantic-vs-lexical clears it; finer tuning (elser vs dense, RRF
+weightings) does not at this scale — that needs ~50–100 queries and a stronger judge (GPT-4o or hand
+labels). So: **default to a hybrid semantic mode; pick elser vs dense on operational grounds**
+(dense/Ollama = portable; elser = Elastic-native but needs an AVX2 ML node), not on this eval.
+
+**Note:** semantic queries (ELSER especially) score the whole corpus, so the API trims the
+low-relevance tail (keeps hits within 50% of the top score) — otherwise "java" "matches" all ~2,877
+jobs. Even so, "java" surfaces roles that merely *list* Java as a skill (e.g. a Credit Trader whose
+requirements mention "Python, Java") — a real lexical match, not a semantic error.
+
 **ELSER: crashed on kilchoman, resolved by an ML node on bowmore.** On kilchoman the model
 reached `fully_allocated` but every inference crashed the native process:
 `Fatal error: si_signo 4 (SIGILL — illegal instruction) ... libtorch_cpu.so`. The 2013 AMD

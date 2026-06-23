@@ -90,15 +90,23 @@ export async function search(params: SearchParams): Promise<SearchResponse> {
   const size = params.size ?? 12;
   const filters = filterClauses(params.filters);
 
-  // Browse (no query) or explicit date sort or bm25 mode → plain query path.
+  // Browse (no query) or explicit date sort or bm25 mode → plain keyword path.
   const usePlain = !q || params.sort === "date" || mode === "bm25";
+
+  // Semantic retrievers (ELSER especially) score the WHOLE corpus, so we fetch a candidate
+  // window, then trim the low-relevance tail (keep hits within CUTOFF of the top score) and
+  // paginate in-app. Otherwise "java" would "match" all ~2,877 jobs.
+  const CANDIDATES = 100;
+  const CUTOFF = 0.5;
+  const fetchFrom = usePlain ? from : 0;
+  const fetchSize = usePlain ? size : CANDIDATES;
 
   let hitsResp: any;
   if (usePlain) {
     hitsResp = await es.search({
       index: INDEX,
-      from,
-      size,
+      from: fetchFrom,
+      size: fetchSize,
       query: baseQuery(q, filters),
       highlight: HIGHLIGHT,
       _source_excludes: SOURCE_EXCLUDES,
@@ -108,8 +116,8 @@ export async function search(params: SearchParams): Promise<SearchResponse> {
     const vector = await embed(q!);
     hitsResp = await es.search({
       index: INDEX,
-      from,
-      size,
+      from: fetchFrom,
+      size: fetchSize,
       retriever: {
         rrf: {
           retrievers: [
@@ -118,13 +126,13 @@ export async function search(params: SearchParams): Promise<SearchResponse> {
               knn: {
                 field: "embedding",
                 query_vector: vector,
-                k: from + size,
-                num_candidates: Math.max(100, (from + size) * 3),
+                k: CANDIDATES,
+                num_candidates: Math.max(200, CANDIDATES * 2),
                 filter: filters,
               },
             },
           ],
-          rank_window_size: Math.max(50, from + size),
+          rank_window_size: CANDIDATES,
           rank_constant: 60,
         },
       } as any,
@@ -135,8 +143,8 @@ export async function search(params: SearchParams): Promise<SearchResponse> {
     // elser
     hitsResp = await es.search({
       index: INDEX,
-      from,
-      size,
+      from: fetchFrom,
+      size: fetchSize,
       retriever: {
         rrf: {
           retrievers: [
@@ -147,7 +155,7 @@ export async function search(params: SearchParams): Promise<SearchResponse> {
               },
             },
           ],
-          rank_window_size: Math.max(50, from + size),
+          rank_window_size: CANDIDATES,
           rank_constant: 60,
         },
       } as any,
@@ -157,14 +165,18 @@ export async function search(params: SearchParams): Promise<SearchResponse> {
   }
 
   const facets = await fetchFacets(q, filters);
-  const total =
-    typeof hitsResp.hits.total === "number" ? hitsResp.hits.total : hitsResp.hits.total?.value ?? 0;
 
-  return {
-    total,
-    hits: hitsResp.hits.hits.map(mapHit),
-    facets,
-    mode,
-    tookMs: Date.now() - start,
-  };
+  let hits = hitsResp.hits.hits.map(mapHit);
+  let total: number;
+  if (usePlain) {
+    total = typeof hitsResp.hits.total === "number" ? hitsResp.hits.total : hitsResp.hits.total?.value ?? 0;
+  } else {
+    // Trim the semantic long tail by relative score, then paginate the kept set.
+    const top = hits[0]?.score ?? 0;
+    if (top > 0) hits = hits.filter((h: SearchHit) => h.score >= top * CUTOFF);
+    total = hits.length;
+    hits = hits.slice(from, from + size);
+  }
+
+  return { total, hits, facets, mode, tookMs: Date.now() - start };
 }
