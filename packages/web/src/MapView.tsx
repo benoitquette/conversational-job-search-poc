@@ -36,7 +36,7 @@ export function MapView({
 
   useEffect(() => {
     setLoading(true);
-    getMapResults({ q, filters, mode, size: 300 })
+    getMapResults({ q, filters, mode, size: 2000 })
       .then((r) => setHits(r.hits.filter((h) => h.geo)))
       .catch(() => setHits([]))
       .finally(() => setLoading(false));
@@ -48,7 +48,9 @@ export function MapView({
   return (
     <div className="mapview">
       <p className="scatter-help">
-        {loading ? "Loading map…" : `${hits.length} jobs with a known location (colour = sector).`}
+        {loading
+          ? "Loading map…"
+          : `${hits.length} jobs mapped (colour = sector). Jobs with an unrecognised location aren't shown.`}
       </p>
       <MapContainer center={[54, -2.2]} zoom={6} scrollWheelZoom className="map-canvas">
         <TileLayer

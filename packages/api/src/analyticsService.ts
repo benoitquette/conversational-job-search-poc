@@ -53,7 +53,7 @@ export async function mapResults(params: SearchParams): Promise<{ hits: SearchHi
   const filters = filterClauses(params.filters);
   const resp: any = await es().search({
     index: INDEX,
-    size: Math.min(params.size ?? 300, 1000),
+    size: Math.min(params.size ?? 1000, 3000),
     query: {
       bool: {
         must: baseQuery(q, filters).bool.must,

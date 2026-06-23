@@ -32,11 +32,11 @@ const searchSchema = z.object({
   mode: z.enum(["bm25", "dense", "elser"]).optional(),
 });
 
-// insights/scatter operate over larger result sets than the paged search
+// insights/scatter/map operate over larger result sets than the paged search
 const analyticsSchema = z.object({
   q: z.string().optional(),
   filters: filtersSchema,
-  size: z.number().int().min(1).max(300).optional(),
+  size: z.number().int().min(1).max(3000).optional(),
   mode: z.enum(["bm25", "dense", "elser"]).optional(),
 });
 

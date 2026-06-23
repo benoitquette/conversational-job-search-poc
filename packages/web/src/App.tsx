@@ -58,9 +58,16 @@ export function App() {
       </header>
 
       <main>
-        {tab === "search" && <SearchView mode={mode} />}
-        {tab === "chat" && <ChatView />}
-        {tab === "foryou" && <ForYouView />}
+        {/* Keep all tabs mounted so their state (results, chat thread) survives switching. */}
+        <div style={{ display: tab === "search" ? "block" : "none" }}>
+          <SearchView mode={mode} />
+        </div>
+        <div style={{ display: tab === "chat" ? "block" : "none" }}>
+          <ChatView />
+        </div>
+        <div style={{ display: tab === "foryou" ? "block" : "none" }}>
+          <ForYouView />
+        </div>
       </main>
     </div>
   );
