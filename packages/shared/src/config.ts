@@ -12,7 +12,7 @@ function env(key: string, fallback?: string): string {
 
 export const config = {
   es: {
-    url: env("ES_URL", "http://192.168.68.56:9200"),
+    url: env("ES_URL", "http://192.168.68.51:9200"),
     index: env("ES_INDEX", "jobs"),
     username: process.env.ES_USERNAME,
     password: process.env.ES_PASSWORD,

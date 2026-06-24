@@ -22,12 +22,17 @@ services:
       - xpack.ml.enabled=true
       - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
       - bootstrap.memory_lock=false
+      # Snapshot repo — lets this node write a filesystem snapshot of `jobs` that
+      # can be rsync'd to bowmore and restored (see deploy/MIGRATION.md).
+      - path.repo=/snapshots
     ulimits:
       memlock: { soft: -1, hard: -1 }
       nofile: { soft: 65536, hard: 65536 }
     mem_limit: 4g
     volumes:
       - mp-search-esdata:/usr/share/elasticsearch/data
+      # Host dir holding snapshot files; rsync this to bowmore during migration.
+      - /home/ben/es-snap:/snapshots
 
 volumes:
   mp-search-esdata:

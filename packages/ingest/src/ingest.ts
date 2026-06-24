@@ -1,10 +1,10 @@
 /**
- * Fetch the UK job XML feed → parse → normalize → (embed for dense) → bulk index to kilchoman.
+ * Fetch the UK job XML feed → parse → normalize → (embed for dense) → bulk index to ES.
  *
  *   npm run ingest                 # embeds for dense (default SEMANTIC_MODE=dense)
  *   WITH_DENSE=false npm run ingest # skip embeddings (bm25 / elser only — no Ollama needed)
  *
- * ELSER vectors are produced in-cluster on kilchoman via the semantic_text field (if present).
+ * ELSER vectors are produced in-cluster via the semantic_text field (if present).
  */
 import { XMLParser } from "fast-xml-parser";
 import { esClient, INDEX, config, embed } from "@search/shared";

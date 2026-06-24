@@ -1,17 +1,22 @@
 # Architecture
 
 A job-search POC over the real Michael Page UK feed, with classic faceted search, conversational
-(ChatGPT-like) search, and content-based recommendations. Everything runs locally and free across
-two LAN machines that form one Elasticsearch cluster.
+(ChatGPT-like) search, and content-based recommendations. Everything runs locally and free on a
+single machine.
 
-- **kilchoman** — `192.168.68.56`, small home server (2013 CPU, no AVX2). ES **master + data** node.
-- **bowmore** — `192.168.68.51`, laptop (16 GB, AVX2). Runs the API, the web app, **Ollama**, and an
-  ES **ml-only node** that runs **ELSER** (its CPU has the AVX2 that ELSER's libtorch needs; kilchoman's doesn't).
+- **bowmore** — `192.168.68.51`, laptop (16 GB, AVX2). Runs the API, the web app, **Ollama**, and a
+  **single all-roles Elasticsearch node** (data + master + an `ml` role that runs **ELSER** —
+  ELSER's libtorch needs the AVX2 this CPU has).
 
 No Claude/Anthropic at runtime. The LLM is local (Ollama), behind a provider-agnostic
 OpenAI-compatible client so it can be swapped for Azure OpenAI / Vertex in production by env alone.
 
-## 1. Deployment topology (2-node ES cluster)
+> **History:** this began as a **2-node cluster** that offloaded the master+data node to a second
+> box (`kilchoman`, `192.168.68.56`, no AVX2) to keep RAM free on bowmore, with ELSER pinned to a
+> bowmore ml-only node. It was consolidated onto one node via snapshot/restore — see
+> [`deploy/MIGRATION.md`](deploy/MIGRATION.md) (and the rollback path it documents).
+
+## 1. Deployment topology (single ES node)
 
 ```mermaid
 flowchart LR
@@ -22,22 +27,16 @@ flowchart LR
       chat["qwen2.5:7b (chat+tools)"]
       embed["nomic-embed-text (768-d)"]
     end
-    esml["ES ml-node 'bowmore'\nroles: ml\nruns ELSER"]
+    es["ES node 'bowmore'\nroles: data,master,ingest,transform,ml\nindex: jobs · runs ELSER"]
     web -->|/api proxy| api
     api -->|chat / embeddings| ollama
+    api -->|HTTP :9200| es
+    es -.->|ELSER inference on its own ml role| es
   end
-
-  subgraph kilchoman["kilchoman — 192.168.68.56 (no AVX2)"]
-    esdata["ES master+data 'kilchoman'\nroles: master,data,ingest,transform\nindex: jobs"]
-  end
-
-  api -->|HTTP :9200| esdata
-  esdata <-->|cluster transport :9300\n(mp-search)| esml
-  esdata -.->|ELSER inference dispatched to ml node| esml
 ```
 
-The API only talks to kilchoman's `:9200`. When a `semantic`/ELSER operation runs, the cluster
-dispatches the PyTorch inference to the `ml` node on bowmore automatically.
+The API talks to bowmore's `:9200`. `discovery.type=single-node`; the `ml` role runs ELSER's
+PyTorch inference in-process when a `semantic`/ELSER operation runs.
 
 ## 2. Monorepo layout
 
@@ -64,14 +63,14 @@ flowchart LR
   C --> C3["map codes (contractType / period)"]
   C --> D["semanticContent = title + summary + desc"]
   D --> E["dense-embed via Ollama → 768-d"]
-  E --> F["bulk index → kilchoman\n(50-doc chunks)"]
-  D -->|copy_to → semantic_text| G["ELSER embeds in-cluster\non the bowmore ml node"]
+  E --> F["bulk index → ES\n(50-doc chunks)"]
+  D -->|copy_to → semantic_text| G["ELSER embeds in-cluster\nvia the ml role"]
   F --> G
 ```
 
-Dense vectors are computed on bowmore (Ollama) and shipped as plain numbers. ELSER vectors are
-produced in-cluster on the bowmore ml node at index time. Small bulk chunks keep each
-ELSER-embedding request under the client timeout.
+Dense vectors are computed by Ollama and shipped as plain numbers. ELSER vectors are produced
+in-cluster (the node's `ml` role) at index time. Small bulk chunks keep each ELSER-embedding
+request under the client timeout.
 
 ## 4. Data model (the `jobs` index)
 
@@ -98,13 +97,13 @@ sequenceDiagram
   participant U as Browser
   participant API as API /api/search
   participant O as Ollama (embed)
-  participant ES as ES cluster
+  participant ES as ES node
 
   U->>API: { q, filters, mode, page }
   alt dense mode & has query
     API->>O: embed(q) → query vector
   end
-  API->>ES: retrieval (per mode) + filters  %% elser → inference on bowmore ml node
+  API->>ES: retrieval (per mode) + filters  %% elser → inference via ml role
   ES-->>API: ranked hits
   API->>ES: aggregations (size:0) for facets
   ES-->>API: facet buckets
@@ -122,7 +121,7 @@ sequenceDiagram
   participant API as API /api/chat
   participant LLM as Ollama qwen2.5:7b
   participant S as searchService
-  participant ES as ES cluster
+  participant ES as ES node
 
   U->>API: { sessionId, message }
   API->>LLM: history + system prompt + search_jobs tool (stream)
@@ -178,7 +177,7 @@ flowchart TD
 flowchart LR
   subgraph POC["POC (local, free)"]
     o["Ollama qwen2.5:7b"]
-    esd["2-node ES on bowmore+kilchoman"]
+    esd["single-node ES on bowmore"]
   end
   subgraph PROD["Production"]
     az["Azure OpenAI / Vertex (env-only swap)"]

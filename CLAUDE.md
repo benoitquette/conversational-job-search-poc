@@ -11,20 +11,22 @@ how a production conversational search would be built (see `ASSESSMENT.md`).
 
 Everything runs locally and free — no cloud, no Claude/Anthropic at runtime.
 
-## The two-machine split (important)
+## Topology: single node on bowmore
 
-Work is split across two LAN machines, which together form a **2-node Elasticsearch cluster**
-(`mp-search`, host networking, security disabled — LAN-only):
+Everything runs on **bowmore** (`192.168.68.51`, dev laptop, 16 GB, modern AVX2 CPU): the API, the
+web app, **all Ollama inference** (`qwen2.5:7b` chat, `nomic-embed-text` embeddings), and a
+**single all-roles Elasticsearch node** (`mp-search`, host networking, security disabled — LAN-only)
+holding the `jobs` index and running **ELSER** via its `ml` role. Compose: `deploy/bowmore-single/`.
+`node.roles=master,data,ingest,transform,ml,remote_cluster_client`, `discovery.type=single-node`.
 
-- **bowmore** (`192.168.68.51`, dev laptop, 16 GB, modern AVX2 CPU) — runs the API, the web app,
-  **all Ollama inference** (`qwen2.5:7b` chat, `nomic-embed-text` embeddings), **and an ES
-  ml-only node** that runs **ELSER** (PyTorch needs AVX2, which only bowmore has).
-- **kilchoman** (`192.168.68.56`, ~7 GB, 2013 Kabini CPU, no GPU) — the ES **master+data** node
-  (no `ml` role). Holds the `jobs` index. The API talks to it on `:9200`.
+ELSER must run here because its `libtorch` needs AVX2. The box is tight — ES (`mem_limit: 5g`) +
+qwen2.5:7b (~5.5 GB) + nomic share 16 GB; the squeeze is a concurrent ELSER-query + chat generation.
 
-Why the split: kilchoman's CPU crashes ELSER's `libtorch` with SIGILL (no AVX2), so the ML node
-lives on bowmore; the data stays on kilchoman. Stop kilchoman's media stack before bringing ES up
-to free RAM (see README), and restart it afterwards.
+**History / rollback:** this started as a **2-node cluster** that offloaded the master+data node to
+`kilchoman` (`192.168.68.56`, ~7 GB, 2013 Kabini CPU, no AVX2) to keep RAM free on bowmore, with
+ELSER pinned to bowmore's ml-only node. It was consolidated via snapshot/restore — see
+`deploy/MIGRATION.md`. The old per-host composes (`deploy/kilchoman/`, `deploy/bowmore/`) and
+kilchoman's `mp-search-esdata` volume are kept as the rollback path.
 
 ## Architecture
 
@@ -48,8 +50,8 @@ mapping); the UI disables the rest.
 - `bm25` — keyword `multi_match` only (baseline; also used for empty-query browse + date sort).
 - `dense` — RRF fusion of BM25 + kNN over the `embedding` `dense_vector` (query embedded on bowmore
   via Ollama). The reliable default.
-- `elser` — RRF fusion of BM25 + a `semantic` query over a `semantic_text` field (ELSER, run on the
-  **bowmore ml node**). Created only when `WITH_ELSER=true` at setup.
+- `elser` — RRF fusion of BM25 + a `semantic` query over a `semantic_text` field (ELSER, run via the
+  bowmore node's **`ml` role**). Created only when `WITH_ELSER=true` at setup.
 
 Facets come from a separate `size:0` aggregation query (decoupled from ranked retrieval) so counts
 are correct regardless of mode.
@@ -65,19 +67,18 @@ are correct regardless of mode.
 ## Commands
 
 ```bash
-# 1. kilchoman: stop media stack, bring up the DATA node (compose in deploy/kilchoman/)
-# 2. bowmore: bring up the ML node (compose in deploy/bowmore/) so it joins the cluster
-# 3. bowmore:
+# all on bowmore:
+npm run es:up                   # single-node ES (deploy/bowmore-single/)
 ollama pull qwen2.5:7b && ollama pull nomic-embed-text
 cp .env.example .env
 npm install
-WITH_ELSER=true npm run setup   # ELSER endpoint (on bowmore) + index with dense + semantic fields
+WITH_ELSER=true npm run setup   # ELSER endpoint + index with dense + semantic fields
 npm run ingest                  # fetch feed, dense-embed, bulk index (~2,877 jobs)
 npm run dev                     # API (:3001) + web (:5173)
 ```
 
-Both ES hosts need `sudo sysctl -w vm.max_map_count=262144` (multi-node triggers ES production
-bootstrap checks).
+bowmore needs `sudo sysctl -w vm.max_map_count=262144` (ES production bootstrap check).
+`npm run es:down` / `npm run es:logs` manage the node.
 
 Flags:
 - `WITH_ELSER=true npm run setup` — create the ELSER endpoint + `semantic_text` field (enables `elser`).
@@ -86,7 +87,8 @@ Flags:
 
 ## Conventions / gotchas
 
-- **ELSER needs AVX2** → it runs on the bowmore ml node, not kilchoman (kilchoman has no `ml` role).
+- **ELSER needs AVX2** → it runs via bowmore's `ml` role. (The old kilchoman data node had no `ml`
+  role for this reason; see `deploy/MIGRATION.md`.)
 - **Bulk indexing with `semantic_text` is slow** (each bulk embeds via ELSER in-cluster). Use small
   chunks — `ingest.ts` uses 50 docs/bulk with a 600 s client timeout; larger chunks time out.
 - Feed field codes are **inferred** (`contractType` 1→Permanent/2→Temporary/0→Unspecified; salary

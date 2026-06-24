@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Conversational job-search POC \u2014 Elasticsearch (kilchoman) + local LLM (Ollama on bowmore)",
+  "description": "Conversational job-search POC \u2014 Elasticsearch + local LLM (Ollama), single node on bowmore",
   "workspaces": [
     "packages/shared",
     "packages/ingest",
@@ -12,13 +12,15 @@
   ],
   "scripts": {
     "setup": "tsx packages/ingest/src/setup-index.ts",
+    "setup:endpoint": "tsx packages/ingest/src/setup-endpoint.ts",
     "ingest": "tsx packages/ingest/src/ingest.ts",
     "geocode": "tsx packages/ingest/src/geocode.ts",
     "dev:api": "tsx watch packages/api/src/server.ts",
     "dev:web": "npm --workspace @search/web run dev",
     "dev": "concurrently -k -n api,web -c blue,magenta \"npm:dev:api\" \"npm:dev:web\"",
-    "es:up": "ssh 192.168.68.56 'cd ~/mp-search && docker compose up -d'",
-    "es:logs": "ssh 192.168.68.56 'cd ~/mp-search && docker compose logs -f --tail=100'",
+    "es:up": "docker compose -f deploy/bowmore-single/docker-compose.yml up -d",
+    "es:down": "docker compose -f deploy/bowmore-single/docker-compose.yml down",
+    "es:logs": "docker compose -f deploy/bowmore-single/docker-compose.yml logs -f --tail=100",
     "eval": "tsx packages/api/src/eval.ts"
   },
   "devDependencies": {

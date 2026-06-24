@@ -8,41 +8,10 @@
  * Recreates the index from scratch (POC — destructive).
  */
 import { esClient, INDEX, config, ELSER_INFERENCE_ID } from "@search/shared";
+import { ensureElserEndpoint } from "./elser-endpoint.js";
 
 const wantElser =
   config.semanticMode === "elser" || process.env.WITH_ELSER === "true";
-
-async function ensureElserEndpoint() {
-  const es = esClient();
-  try {
-    await es.inference.get({ inference_id: ELSER_INFERENCE_ID });
-    console.log(`✓ ELSER inference endpoint '${ELSER_INFERENCE_ID}' already exists`);
-    return true;
-  } catch {
-    /* not found — create it */
-  }
-  console.log(`Creating ELSER inference endpoint '${ELSER_INFERENCE_ID}' (this can take a while)…`);
-  try {
-    await es.inference.put({
-      task_type: "sparse_embedding",
-      inference_id: ELSER_INFERENCE_ID,
-      inference_config: {
-        service: "elasticsearch",
-        service_settings: {
-          adaptive_allocations: { enabled: true, min_number_of_allocations: 1, max_number_of_allocations: 1 },
-          num_threads: 1,
-          model_id: ".elser_model_2_linux-x86_64",
-        },
-      },
-    } as any);
-    console.log("✓ ELSER endpoint created (model will download/deploy in the background)");
-    return true;
-  } catch (err: any) {
-    console.error("✗ Failed to create ELSER endpoint:", err?.message ?? err);
-    console.error("  → This is an expected risk on kilchoman's old CPU. Falling back to bm25/dense only.");
-    return false;
-  }
-}
 
 async function main() {
   const es = esClient();

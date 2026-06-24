@@ -1,0 +1,48 @@
+# Elasticsearch SINGLE NODE — everything on bowmore (192.168.68.51, Ryzen 5800H w/ AVX2).
+# Collapses the old 2-node cluster (kilchoman master+data  +  bowmore ml) into one
+# all-roles node. AVX2 lets ELSER's libtorch run here, so kilchoman is no longer needed.
+#
+# Migration target: bring this up, create the ELSER endpoint (`npm run setup:endpoint`),
+# then restore the `jobs` snapshot from kilchoman (see deploy/MIGRATION.md).
+#
+# Host networking, security off (LAN-only). After cutover, set ES_URL=http://192.168.68.51:9200.
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.1
+    container_name: mp-search-es
+    network_mode: host
+    environment:
+      - cluster.name=mp-search
+      - node.name=bowmore
+      # all roles on one box: master+data (was kilchoman) + ml (ELSER)
+      - node.roles=master,data,ingest,transform,ml,remote_cluster_client
+      - network.host=0.0.0.0
+      - network.publish_host=192.168.68.51
+      - http.port=9200
+      - transport.port=9300
+      # single-node: self-bootstraps, no seed hosts / initial_master_nodes needed,
+      # and skips the multi-node production bootstrap checks.
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.license.self_generated.type=trial
+      - xpack.ml.enabled=true
+      # 2g heap is enough: the ELSER model lives OFF-heap in libtorch and the `jobs`
+      # index is tiny. Keep heap modest so ELSER + Lucene page cache + Ollama all fit in 15g.
+      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+      - bootstrap.memory_lock=false
+      # Snapshot repo — restore the snapshot rsync'd from kilchoman.
+      - path.repo=/snapshots
+    ulimits:
+      memlock: { soft: -1, hard: -1 }
+      nofile: { soft: 65536, hard: 65536 }
+    # Was 6g(ml) + 4g(data) across two boxes; one combined node on a busy 15g laptop.
+    # 5g = 2g heap + headroom for the ELSER model + Lucene page cache.
+    mem_limit: 5g
+    volumes:
+      - mp-search-esdata:/usr/share/elasticsearch/data
+      # Same host dir as kilchoman's; rsync the snapshot here before restoring.
+      - /home/ben/es-snap:/snapshots
+
+volumes:
+  mp-search-esdata:
+    driver: local
